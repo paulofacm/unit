@@ -1,0 +1,28 @@
+name: Build Relayer Debug
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Debug - repo root and versions
+        run: |
+          echo "=== debug start ==="
+          echo "PWD: $(pwd)"
+          echo "User: $(whoami || true)"
+          uname -a || true
+          echo "--- ls repo root ---"
+          ls -la || true
+          echo "--- tools/relayer dir ---"
+          ls -la tools/relayer || true
+          echo "Node and npm versions:" 
+          node -v || true
+          npm -v || true
+          echo "ENV (CI/GITHUB/GPG vars)"
+          env | grep -E 'GPG|NODE|CI|GITHUB|RUNNER' || true
+          echo "=== debug end ==="

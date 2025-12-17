@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  relayer:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - RELAYER_API_KEY=${RELAYER_API_KEY:-}
+      - RELAYER_JWT_SECRET=${RELAYER_JWT_SECRET:-}
+      - RELAYER_MTLS_REQUIRED=${RELAYER_MTLS_REQUIRED:-false}
+    volumes:
+      - ./deploy:/deploy:ro

@@ -1,0 +1,27 @@
+{
+  "name": "unit-relayer",
+  "version": "0.1.0",
+  "description": "Simple signaling/relayer server for UNIT portal (WebSocket) - skeleton",
+  "main": "index.js",
+  "bin": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "build:linux": "pkg . --targets node18-linux-x64 --output dist/unit-relayer-linux",
+    "build:linux-arm64": "pkg . --targets node18-linux-arm64 --output dist/unit-relayer-linux-arm64",
+    "build:win": "pkg . --targets node18-win-x64 --output dist/unit-relayer-win.exe",
+    "build:all": "npm run build:linux && npm run build:linux-arm64 && npm run build:win"
+  },
+  "dependencies": {
+    "ws": "^8.13.0",
+    "express": "^4.18.2",
+    "prom-client": "^14.0.1",
+    "jsonwebtoken": "^9.0.0"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.0"
+  },
+  "pkg": {
+    "scripts": ["index.js"],
+    "assets": []
+  }
+}

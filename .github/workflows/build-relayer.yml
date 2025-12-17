@@ -1,0 +1,128 @@
+name: Build Relayer Binaries
+
+on:
+  workflow_dispatch: {}
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Secrets used by this workflow (if present):
+    # - GPG_PRIVATE_KEY : ASCII-armored private key (exported via `gpg --armor --export-secret-keys <KEY_ID>`)
+    # - GPG_PASSPHRASE  : Passphrase for the private key (optional; used when the key is passphrase-protected)
+    # These secret names match the README and the helper `scripts/build_release.sh`.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Debug runner info
+        run: |
+          echo "=== Runner debug: start ==="
+          echo "PWD: $(pwd)"
+          echo "User: $(whoami || true)"
+          uname -a || true
+          echo "--- ls repo root ---"
+          ls -la || true
+          echo "--- tools/relayer directory ---"
+          ls -la tools/relayer || true
+          echo "--- node / npm versions ---"
+          node -v || true
+          npm -v || true
+          echo "--- filtered env (GPG/NODE/CI/GITHUB/RUNNER) ---"
+          env | grep -E 'GPG|NODE|CI|GITHUB|RUNNER' || true
+          echo "=== Runner debug: end ==="
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies (use npm ci if lockfile present)
+        run: |
+          cd tools/relayer
+          if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
+            echo "Lockfile found, running npm ci"
+            npm ci
+          else
+            echo "No lockfile found, running npm install"
+            npm install
+          fi
+
+      - name: Build all binaries (use helper script)
+        run: |
+          # Ensure the helper script is executable and run it. We intentionally
+          # disable the script's signing by clearing GPG env vars to let the
+          # workflow perform signing in a controlled step below.
+          chmod +x tools/relayer/scripts/build_release.sh || true
+          GPG_PRIVATE_KEY= GPG_PASSPHRASE= bash -x tools/relayer/scripts/build_release.sh
+
+      - name: Create checksums
+        working-directory: tools/relayer
+        run: |
+          mkdir -p dist
+          if [ -d dist ]; then ls dist || true; fi
+          cd dist
+          for f in *; do sha256sum "$f" >> ../dist/CHECKSUMS || true; done
+          cd ..
+
+      - name: Optional GPG sign checksums
+        working-directory: tools/relayer
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          # If secrets are not set, skip signing gracefully.
+          if [ -z "${GPG_PRIVATE_KEY:-}" ] || [ -z "${GPG_PASSPHRASE:-}" ]; then
+            echo "GPG secrets not provided; skipping signing step."
+            exit 0
+          fi
+
+          # Import private key into a temporary GNUPGHOME to avoid polluting runner keyring
+          TMPGPG=$(mktemp -d)
+          export GNUPGHOME="$TMPGPG"
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          # Sign each artifact in dist/ and the CHECKSUMS file (detached signature)
+          for f in dist/*; do
+            if [ -f "$f" ]; then
+              gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --pinentry-mode loopback --output "$f.sig" --detach-sign "$f" || true
+            fi
+          done
+          if [ -f dist/CHECKSUMS ]; then
+            gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --pinentry-mode loopback --output dist/CHECKSUMS.sig --sign dist/CHECKSUMS || true
+          fi
+          # cleanup
+          rm -rf "$TMPGPG"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: relayer-binaries
+          path: |
+            tools/relayer/dist
+            tools/relayer/dist/CHECKSUMS
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: relayer-binaries
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: 'tools/relayer/dist/**'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
