@@ -68,12 +68,17 @@ jobs:
           cd ..
 
       - name: Optional GPG sign checksums
-        if: ${{ secrets.GPG_PRIVATE_KEY != '' && secrets.GPG_PASSPHRASE != '' }}
         working-directory: tools/relayer
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
+          # If secrets are not set, skip signing gracefully.
+          if [ -z "${GPG_PRIVATE_KEY:-}" ] || [ -z "${GPG_PASSPHRASE:-}" ]; then
+            echo "GPG secrets not provided; skipping signing step."
+            exit 0
+          fi
+
           # Import private key into a temporary GNUPGHOME to avoid polluting runner keyring
           TMPGPG=$(mktemp -d)
           export GNUPGHOME="$TMPGPG"
