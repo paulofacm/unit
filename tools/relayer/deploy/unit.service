@@ -1,0 +1,16 @@
+[Unit]
+Description=UNIT Relayer Signaling Server
+After=network.target
+
+[Service]
+Type=simple
+User=relayer
+Group=relayer
+WorkingDirectory=/opt/unit/relayer
+ExecStart=/opt/unit/relayer/unit-relayer-linux
+Restart=on-failure
+RestartSec=5s
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

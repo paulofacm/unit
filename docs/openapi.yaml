@@ -1,0 +1,151 @@
+openapi: 3.0.3
+info:
+  title: UNIT Gateway API
+  version: 0.1.0
+  description: >-
+    OpenAPI specification for UNIT portal integration points: token issuance,
+    checkpointing to public chains, ZK proof submission and relayer endpoints.
+
+servers:
+  - url: https://api.unit.example
+
+paths:
+  /wallet/balance:
+    get:
+      summary: Get on-chain (or aggregated) balance for an address
+      parameters:
+        - in: query
+          name: address
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Current balance
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  address:
+                    type: string
+                  balance:
+                    type: number
+
+  /tx/submit:
+    post:
+      summary: Submit a signed transaction to the UNIT network (mempool)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Transaction'
+      responses:
+        '202':
+          description: Accepted into mempool
+
+  /blocks/latest:
+    get:
+      summary: Get the latest block on the L1 hub
+      responses:
+        '200':
+          description: Latest block
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Block'
+
+  /checkpoint:
+    post:
+      summary: Submit a checkpoint (block summary) to a public chain or relayer
+      description: >-
+        Used by relayers to anchor UNIT L1 checkpoints on public chains.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                blockId:
+                  type: integer
+                blockHash:
+                  type: string
+                merkleRoot:
+                  type: string
+                signature:
+                  type: string
+      responses:
+        '200':
+          description: Checkpoint accepted
+
+  /proofs/zk:
+    post:
+      summary: Submit a zero-knowledge proof for verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                proof:
+                  type: string
+                publicInputs:
+                  type: object
+      responses:
+        '200':
+          description: Proof verified
+
+components:
+  schemas:
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+        from:
+          type: string
+        to:
+          type: string
+        amount:
+          type: number
+        timestamp:
+          type: integer
+        proofType:
+          type: string
+        activityData:
+          type: object
+        cooperationHash:
+          type: string
+        signature:
+          type: string
+
+    Block:
+      type: object
+      properties:
+        id:
+          type: integer
+        timestamp:
+          type: integer
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        previousHash:
+          type: string
+        nonce:
+          type: integer
+        difficulty:
+          type: integer
+        reward:
+          type: number
+        minerAddress:
+          type: string
+        merkleRoot:
+          type: string
+        hash:
+          type: string
+
+security: []

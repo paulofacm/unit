@@ -1,0 +1,71 @@
+---
+ - name: Deploy UNIT relayer
+   hosts: relayer
+   become: true
+   vars:
+     relayer_user: relayer
+     relayer_install_dir: /opt/unit/relayer
+     relayer_binary_src: ./dist/unit-relayer-linux
+     service_unit_src: ./deploy/unit.service
+     nginx_conf_src: ./deploy/nginx.conf
+
+   tasks:
+     - name: Ensure relayer user exists
+       user:
+         name: "{{ relayer_user }}"
+         system: yes
+         shell: /usr/sbin/nologin
+
+     - name: Create install dir
+       file:
+         path: "{{ relayer_install_dir }}"
+         state: directory
+         owner: "{{ relayer_user }}"
+         group: "{{ relayer_user }}"
+         mode: '0755'
+
+     - name: Copy relayer binary
+       copy:
+         src: "{{ relayer_binary_src }}"
+         dest: "{{ relayer_install_dir }}/unit-relayer-linux"
+         mode: '0755'
+         owner: "{{ relayer_user }}"
+         group: "{{ relayer_user }}"
+
+     - name: Copy systemd unit
+       copy:
+         src: "{{ service_unit_src }}"
+         dest: /etc/systemd/system/unit-relayer.service
+         mode: '0644'
+
+     - name: Reload systemd daemon
+       systemd:
+         daemon_reload: yes
+
+     - name: Enable and start relayer service
+       systemd:
+         name: unit-relayer.service
+         enabled: yes
+         state: started
+
+     - name: Copy nginx config
+       copy:
+         src: "{{ nginx_conf_src }}"
+         dest: /etc/nginx/sites-available/unit-relayer.conf
+         mode: '0644'
+
+     - name: Enable nginx site
+       file:
+         src: /etc/nginx/sites-available/unit-relayer.conf
+         dest: /etc/nginx/sites-enabled/unit-relayer.conf
+         state: link
+
+     - name: Test nginx config
+       command: nginx -t
+       register: nginx_test
+       failed_when: nginx_test.rc != 0
+
+     - name: Reload nginx
+       service:
+         name: nginx
+         state: reloaded
