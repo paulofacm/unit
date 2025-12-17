@@ -1,3 +1,16 @@
+# Ignore Node modules and build artifacts for relayer
+/tools/relayer/node_modules/
+/tools/relayer/dist/
+
+# General ignores
+.DS_Store
+.vscode/
+/.idea/
+/.flutter-plugins
+/.flutter-plugins-dependencies
+/.packages
+build/
+/.dart_tool/
 # Miscellaneous
 *.class
 *.log
