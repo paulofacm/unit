@@ -22,9 +22,16 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install dependencies
-        working-directory: tools/relayer
-        run: npm ci
+      - name: Install dependencies (use npm ci if lockfile present)
+        run: |
+          cd tools/relayer
+          if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
+            echo "Lockfile found, running npm ci"
+            npm ci
+          else
+            echo "No lockfile found, running npm install"
+            npm install
+          fi
 
       - name: Build all binaries
         working-directory: tools/relayer
