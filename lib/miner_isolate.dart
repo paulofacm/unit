@@ -24,7 +24,7 @@ Future<Map<String, dynamic>> mineWorker(Map<String, dynamic> args) async {
     nonce++;
     final candidate = _createCandidate(template, nonce);
     final input = json.encode(candidate);
-    hashResult = calculateSha256(input);
+    hashResult = sha256Hex(input);
   } while (!hashResult.startsWith(target));
 
   final mined = Map<String, dynamic>.from(template);

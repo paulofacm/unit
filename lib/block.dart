@@ -24,7 +24,7 @@ class Block {
   String calculateHash() {
     final txs = transactions.map((t) => t.calculateHash()).join('');
     final input = "$id$timestamp$previousHash$nonce$difficulty$type$merkleRoot$minerAddress$reward$txs"; 
-    return calculateSha256(input);
+    return sha256Hex(input);
   }
     Map<String, dynamic> toJson() {
       return {

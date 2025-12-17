@@ -35,7 +35,7 @@ class BlockchainCore {
       id: "TX${Random().nextInt(999)}", from: wallet.publicKey, to: "REWARD_POOL",
       amount: 0.0, timestamp: DateTime.now().millisecondsSinceEpoch,
       proofType: "ACTIVITY_PROOF", activityData: {"source": source, "event": event},
-      signature: calculateSha256(wallet.publicKey + event),
+      signature: sha256Hex(wallet.publicKey + event),
     ));
   }
 
@@ -50,7 +50,7 @@ class BlockchainCore {
       amount: amount, 
       timestamp: DateTime.now().millisecondsSinceEpoch,
       proofType: "TOKEN_TRANSFER", 
-      signature: calculateSha256(wallet.publicKey + to + amount.toString()),
+      signature: sha256Hex(wallet.publicKey + to + amount.toString()),
     ));
   }
 
@@ -95,7 +95,7 @@ class BlockchainCore {
       amount: minerReward,
       timestamp: DateTime.now().millisecondsSinceEpoch,
       proofType: "TOKEN_TRANSFER",
-      signature: calculateSha256("SYSTEM_REWARD"),
+      signature: sha256Hex("SYSTEM_REWARD"),
     );
     txs.add(rewardTx);
 
